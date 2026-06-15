@@ -1,0 +1,215 @@
+mysql> -- Creating Student Database
+mysql> CREATE DATABASE assignment7_student_db;
+Query OK, 1 row affected (0.04 sec)
+
+mysql> USE assignment7_student_db;
+Database changed
+mysql>
+mysql> -- Student Table
+mysql> CREATE TABLE student (
+    -> prn VARCHAR(20) PRIMARY KEY,
+    -> name VARCHAR(100),
+    -> address VARCHAR(200),
+    -> dob DATE,
+    -> fees DECIMAL(10,2)
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql>
+mysql> -- StudentDeleteLog Table
+mysql> CREATE TABLE StudentDeleteLog (
+    -> log_id INT AUTO_INCREMENT PRIMARY KEY,
+    -> prn VARCHAR(20),
+    -> name VARCHAR(100),
+    -> delete_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -> FOREIGN KEY (prn) REFERENCES student(prn)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql>
+mysql> -- Describe tables
+mysql> DESCRIBE student;
++---------+---------------+------+-----+---------+-------+
+| Field   | Type          | Null | Key | Default | Extra |
++---------+---------------+------+-----+---------+-------+
+| prn     | varchar(20)   | NO   | PRI | NULL    |       |
+| name    | varchar(100)  | YES  |     | NULL    |       |
+| address | varchar(200)  | YES  |     | NULL    |       |
+| dob     | date          | YES  |     | NULL    |       |
+| fees    | decimal(10,2) | YES  |     | NULL    |       |
++---------+---------------+------+-----+---------+-------+
+5 rows in set (0.02 sec)
+
+mysql> DESCRIBE StudentDeleteLog;
++------------------+--------------+------+-----+-------------------+-------------------+
+| Field            | Type         | Null | Key | Default           | Extra             |
++------------------+--------------+------+-----+-------------------+-------------------+
+| log_id           | int          | NO   | PRI | NULL              | auto_increment    |
+| prn              | varchar(20)  | YES  | MUL | NULL              |                   |
+| name             | varchar(100) | YES  |     | NULL              |                   |
+| delete_timestamp | timestamp    | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++------------------+--------------+------+-----+-------------------+-------------------+
+4 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Inserting valid sample data (DOB ensures age >=18 as of 2025-10-19)
+mysql> -- Valid PRN length >=10, fees >0, age >=18 (DOB <=2007-10-19)
+mysql> INSERT INTO student VALUES
+    -> ('STU1234567890', 'Amit Sharma', 'Mumbai', '2000-05-15', 5000.00), -- Age ~25
+    -> ('STU0987654321', 'Priya Patel', 'Delhi', '2005-11-20', 4500.00), -- Age ~20
+    -> ('STU1122334455', 'Raj Kumar', 'Bangalore', '1998-03-10', 6000.00); -- Age ~27
+Query OK, 3 rows affected (0.01 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+mysql>
+mysql> -- Print table
+mysql> SELECT * FROM student;
++---------------+-------------+-----------+------------+---------+
+| prn           | name        | address   | dob        | fees    |
++---------------+-------------+-----------+------------+---------+
+| STU0987654321 | Priya Patel | Delhi     | 2005-11-20 | 4500.00 |
+| STU1122334455 | Raj Kumar   | Bangalore | 1998-03-10 | 6000.00 |
+| STU1234567890 | Amit Sharma | Mumbai    | 2000-05-15 | 5000.00 |
++---------------+-------------+-----------+------------+---------+
+3 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Invalid insert attempts (will fail after triggers)
+mysql> -- e.g., INSERT INTO student VALUES ('SHORT', 'Test', 'Addr', '2010-01-01', -100); -- Short PRN, underage, negative fees
+mysql>
+mysql> -- BEFORE INSERT Trigger: Validate PRN length, age >=18, fees >0
+mysql> DELIMITER //
+mysql> CREATE TRIGGER validate_student_insert BEFORE INSERT ON student FOR EACH ROW
+    -> BEGIN
+    -> DECLARE calculated_age INT;
+    ->
+    -> -- PRN length check
+    -> IF LENGTH(NEW.prn) < 10 THEN
+    -> SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PRN must be at least 10 characters long';
+    -> END IF;
+    ->
+    -> -- Age calculation: TIMESTAMPDIFF(YEAR, dob, CURDATE()) >=18
+    -> SET calculated_age = TIMESTAMPDIFF(YEAR, NEW.dob, CURDATE());
+    -> IF calculated_age < 18 THEN
+    -> SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Student must be at least 18 years old';
+    -> END IF;
+    ->
+    -> -- Fees >0
+    -> IF NEW.fees <= 0 THEN
+    -> SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Fees must be greater than 0';
+    -> END IF;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> -- BEFORE UPDATE Trigger: Same validations on updated values
+mysql> DELIMITER //
+mysql> CREATE TRIGGER validate_student_update BEFORE UPDATE ON student FOR EACH ROW
+    -> BEGIN
+    -> DECLARE calculated_age INT;
+    ->
+    -> -- PRN length check (assuming PRN not updated, but check anyway)
+    -> IF LENGTH(NEW.prn) < 10 THEN
+    -> SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PRN must be at least 10 characters long';
+    -> END IF;
+    ->
+    -> -- Age check on DOB (if updated)
+    -> SET calculated_age = TIMESTAMPDIFF(YEAR, NEW.dob, CURDATE());
+    -> IF calculated_age < 18 THEN
+    -> SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Student must be at least 18 years old';
+    -> END IF;
+    ->
+    -> -- Fees >0
+    -> IF NEW.fees <= 0 THEN
+    -> SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Fees must be greater than 0';
+    -> END IF;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> -- AFTER DELETE Trigger: Log deletion
+mysql> DELIMITER //
+mysql> CREATE TRIGGER log_student_delete AFTER DELETE ON student FOR EACH ROW
+    -> BEGIN
+    -> INSERT INTO StudentDeleteLog (prn, name) VALUES (OLD.prn, OLD.name);
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> -- Test valid insert (should succeed)
+mysql> INSERT INTO student VALUES ('STU6677889900', 'Sneha Desai', 'Chennai', '2003-07-01', 5500.00);
+Query OK, 1 row affected (0.00 sec)
+
+mysql>
+mysql> -- Test invalid insert (uncomment to run; expect error)
+mysql> -- INSERT INTO student VALUES ('SHORT', 'Invalid', 'Addr', '2010-01-01', -100.00);
+mysql>
+mysql> -- Test valid update
+mysql> UPDATE student SET fees = 6000.00 WHERE prn = 'STU1234567890';
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql>
+mysql> -- Test invalid update (expect error)
+mysql> -- UPDATE student SET fees = -500.00 WHERE prn = 'STU1234567890';
+mysql>
+mysql> -- Test delete and check log
+mysql> DELETE FROM student WHERE prn = 'STU1234567890';
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`assignment7_student_db`.`studentdeletelog`, CONSTRAINT `studentdeletelog_ibfk_1` FOREIGN KEY (`prn`) REFERENCES `student` (`prn`))
+mysql> SELECT * FROM StudentDeleteLog;
+Empty set (0.00 sec)
+
+mysql>
+mysql> -- View triggers
+mysql> SHOW TRIGGERS LIKE 'student';
++-------------------------+--------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+| Trigger                 | Event  | Table   | Statement                                | Timing | Created                | sql_mode                              | Definer        | character_set_client | collation_connection | Database Collation |
++-------------------------+--------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+| validate_student_insert | INSERT | student | BEGIN
+DECLARE calculated_age INT;
+
+
+IF LENGTH(NEW.prn) < 10 THEN
+SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PRN must be at least 10 characters long';
+END IF;
+
+
+SET calculated_age = TIMESTAMPDIFF(YEAR, NEW.dob, CURDATE());
+IF calculated_age < 18 THEN
+SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Student must be at least 18 years old';
+END IF;
+
+
+IF NEW.fees <= 0 THEN
+SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Fees must be greater than 0';
+END IF;
+END | BEFORE | 2025-10-19 16:08:37.96 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| validate_student_update | UPDATE | student | BEGIN
+DECLARE calculated_age INT;
+
+
+IF LENGTH(NEW.prn) < 10 THEN
+SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PRN must be at least 10 characters long';
+END IF;
+
+
+SET calculated_age = TIMESTAMPDIFF(YEAR, NEW.dob, CURDATE());
+IF calculated_age < 18 THEN
+SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Student must be at least 18 years old';
+END IF;
+
+
+IF NEW.fees <= 0 THEN
+SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Fees must be greater than 0';
+END IF;
+END | BEFORE | 2025-10-19 16:08:37.97 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| log_student_delete      | DELETE | student | BEGIN
+INSERT INTO StudentDeleteLog (prn, name) VALUES (OLD.prn, OLD.name);
+END                                                                  | AFTER  | 2025-10-19 16:08:37.97 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
++-------------------------+--------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+3 rows in set (0.00 sec)
+
+mysql>

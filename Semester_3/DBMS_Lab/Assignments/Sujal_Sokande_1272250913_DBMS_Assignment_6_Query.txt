@@ -1,0 +1,173 @@
+mysql> -- Creating Employee Database
+mysql> CREATE DATABASE lab6_employee_db;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE lab6_employee_db;
+Database changed
+mysql>
+mysql> -- Employees Table
+mysql> CREATE TABLE Employees (
+    ->     employee_id INT PRIMARY KEY,
+    ->     name VARCHAR(100),
+    ->     salary DECIMAL(10,2),
+    ->     hire_date DATE
+    -> );
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+mysql> -- EmployeeSalaryLog Table
+mysql> CREATE TABLE EmployeeSalaryLog (
+    ->     log_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     employee_id INT,
+    ->     old_salary DECIMAL(10,2),
+    ->     new_salary DECIMAL(10,2),
+    ->     update_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ->     FOREIGN KEY (employee_id) REFERENCES Employees(employee_id)
+    -> );
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+mysql> -- Describe tables
+mysql> DESCRIBE Employees;
++-------------+---------------+------+-----+---------+-------+
+| Field       | Type          | Null | Key | Default | Extra |
++-------------+---------------+------+-----+---------+-------+
+| employee_id | int           | NO   | PRI | NULL    |       |
+| name        | varchar(100)  | YES  |     | NULL    |       |
+| salary      | decimal(10,2) | YES  |     | NULL    |       |
+| hire_date   | date          | YES  |     | NULL    |       |
++-------------+---------------+------+-----+---------+-------+
+4 rows in set (0.00 sec)
+
+mysql> DESCRIBE EmployeeSalaryLog;
++------------------+---------------+------+-----+-------------------+-------------------+
+| Field            | Type          | Null | Key | Default           | Extra             |
++------------------+---------------+------+-----+-------------------+-------------------+
+| log_id           | int           | NO   | PRI | NULL              | auto_increment    |
+| employee_id      | int           | YES  | MUL | NULL              |                   |
+| old_salary       | decimal(10,2) | YES  |     | NULL              |                   |
+| new_salary       | decimal(10,2) | YES  |     | NULL              |                   |
+| update_timestamp | timestamp     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++------------------+---------------+------+-----+-------------------+-------------------+
+5 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Inserting sample data (using Indian names, dates before Oct 06, 2025)
+mysql> INSERT INTO Employees VALUES
+    -> (1, 'Amit Sharma', 5000.00, '2020-01-15'),  -- >5 years
+    -> (2, 'Priya Patel', 4000.00, '2021-06-20'),   -- >4 years (<5)
+    -> (3, 'Raj Kumar', 6000.00, '2015-03-10'),     -- >10 years
+    -> (4, 'Sneha Desai', 4500.00, '2023-07-01');    -- <2 years
+Query OK, 4 rows affected (0.00 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql>
+mysql> -- Print table
+mysql> SELECT * FROM Employees;
++-------------+-------------+---------+------------+
+| employee_id | name        | salary  | hire_date  |
++-------------+-------------+---------+------------+
+|           1 | Amit Sharma | 5000.00 | 2020-01-15 |
+|           2 | Priya Patel | 4000.00 | 2021-06-20 |
+|           3 | Raj Kumar   | 6000.00 | 2015-03-10 |
+|           4 | Sneha Desai | 4500.00 | 2023-07-01 |
++-------------+-------------+---------+------------+
+4 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Q1: Procedure UpdateEmployeeSalary
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE UpdateEmployeeSalary(IN emp_id INT, IN new_sal DECIMAL(10,2))
+    -> BEGIN
+    ->     DECLARE old_sal DECIMAL(10,2);
+    ->     DECLARE emp_exists INT DEFAULT 0;
+    ->
+    ->     -- Check if employee exists
+    ->     SELECT COUNT(*) INTO emp_exists FROM Employees WHERE employee_id = emp_id;
+    ->
+    ->     IF emp_exists > 0 THEN
+    ->         -- Get old salary
+    ->         SELECT salary INTO old_sal FROM Employees WHERE employee_id = emp_id;
+    ->
+    ->         -- Update salary
+    ->         UPDATE Employees SET salary = new_sal WHERE employee_id = emp_id;
+    ->
+    ->         -- Log the change
+    ->         INSERT INTO EmployeeSalaryLog (employee_id, old_salary, new_salary)
+    ->         VALUES (emp_id, old_sal, new_sal);
+    ->     END IF;
+    -> END //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> -- Call procedure example
+mysql> CALL UpdateEmployeeSalary(1, 5500.00);
+Query OK, 1 row affected (0.01 sec)
+
+mysql>
+mysql> -- Check log
+mysql> SELECT * FROM EmployeeSalaryLog;
++--------+-------------+------------+------------+---------------------+
+| log_id | employee_id | old_salary | new_salary | update_timestamp    |
++--------+-------------+------------+------------+---------------------+
+|      1 |           1 |    5000.00 |    5500.00 | 2025-10-06 23:44:10 |
++--------+-------------+------------+------------+---------------------+
+1 row in set (0.00 sec)
+
+mysql>
+mysql> -- Q2: Function CalculateAnnualBonus
+mysql> DELIMITER //
+mysql> CREATE FUNCTION CalculateAnnualBonus(emp_id INT) RETURNS DECIMAL(10,2)
+    -> READS SQL DATA
+    -> DETERMINISTIC
+    -> BEGIN
+    ->     DECLARE emp_salary DECIMAL(10,2);
+    ->     DECLARE emp_hire_date DATE;
+    ->     DECLARE years_service INT;
+    ->     DECLARE bonus DECIMAL(10,2) DEFAULT NULL;
+    ->     DECLARE emp_exists INT DEFAULT 0;
+    ->
+    ->     -- Check if employee exists
+    ->     SELECT COUNT(*) INTO emp_exists FROM Employees WHERE employee_id = emp_id;
+    ->
+    ->     IF emp_exists = 0 THEN
+    ->         RETURN NULL;
+    ->     END IF;
+    ->
+    ->     -- Get salary and hire_date
+    ->     SELECT salary, hire_date INTO emp_salary, emp_hire_date
+    ->     FROM Employees WHERE employee_id = emp_id;
+    ->
+    ->     -- Calculate years of service
+    ->     SET years_service = TIMESTAMPDIFF(YEAR, emp_hire_date, CURDATE());
+    ->
+    ->     -- Calculate bonus
+    ->     IF years_service < 5 THEN
+    ->         SET bonus = emp_salary * 0.10;
+    ->     ELSEIF years_service < 10 THEN
+    ->         SET bonus = emp_salary * 0.15;
+    ->     ELSE
+    ->         SET bonus = emp_salary * 0.20;
+    ->     END IF;
+    ->
+    ->     RETURN bonus;
+    -> END //
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> -- Call function example
+mysql> SELECT employee_id, name, salary, CalculateAnnualBonus(employee_id) AS annual_bonus
+    -> FROM Employees;
++-------------+-------------+---------+--------------+
+| employee_id | name        | salary  | annual_bonus |
++-------------+-------------+---------+--------------+
+|           1 | Amit Sharma | 5500.00 |       825.00 |
+|           2 | Priya Patel | 4000.00 |       400.00 |
+|           3 | Raj Kumar   | 6000.00 |      1200.00 |
+|           4 | Sneha Desai | 4500.00 |       450.00 |
++-------------+-------------+---------+--------------+
+4 rows in set (0.00 sec)
+
+mysql>

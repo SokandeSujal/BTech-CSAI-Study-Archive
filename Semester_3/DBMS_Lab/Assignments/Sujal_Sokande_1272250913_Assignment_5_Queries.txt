@@ -1,0 +1,176 @@
+mysql> -- =========================================
+mysql> -- DATABASE AND TABLE CREATION
+mysql> -- =========================================
+mysql>
+mysql> -- Create the database
+mysql> CREATE DATABASE IF NOT EXISTS duty_allocation_db;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE duty_allocation_db;
+Database changed
+mysql>
+mysql> -- Create Employee table
+mysql> CREATE TABLE Employee (
+    ->     emp_no INT PRIMARY KEY,
+    ->     name VARCHAR(50),
+    ->     skill VARCHAR(50),
+    ->     pay_rate DECIMAL(10,2),
+    ->     INDEX(skill)  -- Needed for foreign key reference
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql>
+mysql> -- Create Position table
+mysql> CREATE TABLE `Position` (
+    ->     posting_no INT PRIMARY KEY,
+    ->     skill VARCHAR(50),
+    ->     FOREIGN KEY (skill) REFERENCES Employee(skill)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql>
+mysql> -- Create Duty_allocation table
+mysql> CREATE TABLE Duty_allocation (
+    ->     posting_no INT,
+    ->     emp_no INT,
+    ->     day DATE,
+    ->     shift VARCHAR(20),
+    ->     PRIMARY KEY (posting_no, emp_no, day),
+    ->     FOREIGN KEY (posting_no) REFERENCES `Position`(posting_no),
+    ->     FOREIGN KEY (emp_no) REFERENCES Employee(emp_no)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql>
+mysql> -- =========================================
+mysql> -- SAMPLE DATA INSERTION
+mysql> -- =========================================
+mysql>
+mysql> -- Insert into Employee
+mysql> INSERT INTO Employee VALUES
+    -> (1001, 'Amit Sharma', 'Cooking', 500.00),
+    -> (1002, 'Priya Patel', 'Cleaning', 450.00),
+    -> (1003, 'Raj Kumar', 'Cooking', 520.00),
+    -> (1004, 'Sneha Desai', 'Serving', 480.00),
+    -> (1005, 'Vijay Mehta', 'Cleaning', 460.00);
+Query OK, 5 rows affected (0.00 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql>
+mysql> -- Insert into Position
+mysql> INSERT INTO Position VALUES
+    -> (2001, 'Cooking'),
+    -> (2002, 'Cleaning'),
+    -> (2003, 'Serving');
+Query OK, 3 rows affected (0.00 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+mysql>
+mysql> -- Insert into Duty_allocation
+mysql> INSERT INTO Duty_allocation VALUES
+    -> (2001, 1001, '2025-09-15', 'Morning'),
+    -> (2002, 1002, '2025-09-15', 'Afternoon'),
+    -> (2001, 1003, '2025-09-15', 'Evening'),
+    -> (2003, 1004, '2025-09-15', 'Night');
+Query OK, 4 rows affected (0.00 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql>
+mysql> -- =========================================
+mysql> -- QUERIES FOR SET 1 (Roll No: 1–10)
+mysql> -- Using date: '2025-09-15'
+mysql> -- =========================================
+mysql>
+mysql> -- Query 1: List the employees and their assigned positions for a specific day
+mysql> SELECT e.name, d.posting_no, d.shift
+    -> FROM Employee e
+    -> JOIN Duty_allocation d ON e.emp_no = d.emp_no
+    -> WHERE d.day = '2025-09-15';
++-------------+------------+-----------+
+| name        | posting_no | shift     |
++-------------+------------+-----------+
+| Amit Sharma |       2001 | Morning   |
+| Raj Kumar   |       2001 | Evening   |
+| Priya Patel |       2002 | Afternoon |
+| Sneha Desai |       2003 | Night     |
++-------------+------------+-----------+
+4 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Query 2: Show all employees and any duties they are assigned to on a particular day, including those with no duty
+mysql> SELECT e.name, d.posting_no, d.shift
+    -> FROM Employee e
+    -> LEFT JOIN Duty_allocation d
+    ->     ON e.emp_no = d.emp_no AND d.day = '2025-09-15';
++-------------+------------+-----------+
+| name        | posting_no | shift     |
++-------------+------------+-----------+
+| Amit Sharma |       2001 | Morning   |
+| Priya Patel |       2002 | Afternoon |
+| Raj Kumar   |       2001 | Evening   |
+| Sneha Desai |       2003 | Night     |
+| Vijay Mehta |       NULL | NULL      |
++-------------+------------+-----------+
+5 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Query 3: List all positions and their employees assigned for a given day—include positions with no employees
+mysql> SELECT p.posting_no, e.name, d.shift
+    -> FROM Position p
+    -> LEFT JOIN Duty_allocation d
+    ->     ON p.posting_no = d.posting_no AND d.day = '2025-09-15'
+    -> LEFT JOIN Employee e
+    ->     ON d.emp_no = e.emp_no;
++------------+-------------+-----------+
+| posting_no | name        | shift     |
++------------+-------------+-----------+
+|       2002 | Priya Patel | Afternoon |
+|       2001 | Amit Sharma | Morning   |
+|       2001 | Raj Kumar   | Evening   |
+|       2003 | Sneha Desai | Night     |
++------------+-------------+-----------+
+4 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Query 4: Provide a full view of assignments for a given day, showing employee names, postings, and shift—include unassigned employees and unfilled positions
+mysql> SELECT e.name, p.posting_no, d.shift
+    -> FROM Employee e
+    -> LEFT JOIN Duty_allocation d
+    ->     ON e.emp_no = d.emp_no AND (d.day = '2025-09-15' OR d.day IS NULL)
+    -> LEFT JOIN Position p
+    ->     ON d.posting_no = p.posting_no
+    ->
+    -> UNION
+    ->
+    -> SELECT e.name, p.posting_no, d.shift
+    -> FROM Position p
+    -> LEFT JOIN Duty_allocation d
+    ->     ON p.posting_no = d.posting_no AND (d.day = '2025-09-15' OR d.day IS NULL)
+    -> LEFT JOIN Employee e
+    ->     ON d.emp_no = e.emp_no;
++-------------+------------+-----------+
+| name        | posting_no | shift     |
++-------------+------------+-----------+
+| Amit Sharma |       2001 | Morning   |
+| Priya Patel |       2002 | Afternoon |
+| Raj Kumar   |       2001 | Evening   |
+| Sneha Desai |       2003 | Night     |
+| Vijay Mehta |       NULL | NULL      |
++-------------+------------+-----------+
+5 rows in set (0.00 sec)
+
+mysql>
+mysql> -- Query 5: Identify employees who share the same skill set
+mysql> SELECT DISTINCT e1.name AS employee1, e2.name AS employee2, e1.skill
+    -> FROM Employee e1
+    -> JOIN Employee e2
+    ->     ON e1.skill = e2.skill AND e1.emp_no < e2.emp_no;
++-------------+-------------+----------+
+| employee1   | employee2   | skill    |
++-------------+-------------+----------+
+| Amit Sharma | Raj Kumar   | Cooking  |
+| Priya Patel | Vijay Mehta | Cleaning |
++-------------+-------------+----------+
+2 rows in set (0.00 sec)
+
+mysql>

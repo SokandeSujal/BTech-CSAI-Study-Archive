@@ -1,0 +1,161 @@
+mysql> USE lab4;
+Database changed
+mysql> CREATE TABLE branch_info(
+    ->     branch_id INT PRIMARY KEY,
+    ->     branch_name VARCHAR(20) UNIQUE,
+    ->     city VARCHAR(20),
+    ->     manager VARCHAR(20)
+    -> );
+Query OK, 0 rows affected (0.06 sec)
+
+mysql>
+mysql> CREATE TABLE cust(
+    ->     cid INT(4) PRIMARY KEY,
+    ->     cname VARCHAR(20) NOT NULL,
+    ->     acctno INT(5) UNIQUE,
+    ->     acc_type VARCHAR(10),
+    ->     branch_id INT,
+    ->     balance DECIMAL(10,2),
+    ->     FOREIGN KEY(branch_id) REFERENCES branch_info(branch_id)
+    -> );
+Query OK, 0 rows affected, 2 warnings (0.06 sec)
+
+mysql>
+mysql> INSERT INTO branch_info VALUES
+    -> (101, 'Main Branch', 'Mumbai', 'Rajesh Sharma'),
+    -> (102, 'Park Street', 'Delhi', 'Priya Singh'),
+    -> (103, 'City Center', 'Bangalore', 'Amit Kumar'),
+    -> (104, 'Downtown', 'Chennai', 'Sneha Reddy'),
+    -> (105, 'Mall Road', 'Pune', 'Vikash Gupta');
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql>
+mysql> INSERT INTO cust VALUES
+    -> (1001, 'Arjun Patel', 50001, 'Savings', 101, 25000.50),
+    -> (1002, 'Meera Shah', 50002, 'Current', 102, 75000.00),
+    -> (1003, 'Rohit Kumar', 50003, 'Savings', 103, 45000.75),
+    -> (1004, 'Kavya Nair', 50004, 'Fixed', 101, 100000.00),
+    -> (1005, 'Suresh Rao', 50005, 'Savings', 104, 30000.25),
+    -> (1006, 'Anita Desai', 50006, 'Current', 105, 80000.00),
+    -> (1007, 'Deepak Joshi', 50007, 'Savings', 102, 35000.50),
+    -> (1008, 'Pooja Mehta', 50008, 'Fixed', 103, 150000.00),
+    -> (1009, 'Rahul Verma', 50009, 'Savings', 104, 20000.75),
+    -> (1010, 'Sita Agarwal', 50010, 'Current', 105, 60000.00);
+Query OK, 10 rows affected (0.01 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> SELECT * FROM cust WHERE cid = (SELECT cid FROM cust WHERE balance = MAX(balance));
+ERROR 1111 (HY000): Invalid use of group function
+mysql> SELECT * FROM cust WHERE cid IN (SELECT cid FROM cust WHERE balance = (SELECT MAX(balance) FROM cust));
++------+-------------+--------+----------+-----------+-----------+
+| cid  | cname       | acctno | acc_type | branch_id | balance   |
++------+-------------+--------+----------+-----------+-----------+
+| 1008 | Pooja Mehta |  50008 | Fixed    |       103 | 150000.00 |
++------+-------------+--------+----------+-----------+-----------+
+1 row in set (0.01 sec)
+
+mysql> SELECT * FROM cust WHERE cid IN (SELECT MAX(balance) FROM cust);
+Empty set (0.01 sec)
+
+mysql> SELECT * FROM cust WHERE cid = (SELECT MAX(balance) FROM cust);
+Empty set (0.00 sec)
+
+mysql> SELECT * FROM cust WHERE cid IN (SELECT cid FROM cust WHERE balance = (SELECT MIN(balance) FROM cust));
++------+-------------+--------+----------+-----------+----------+
+| cid  | cname       | acctno | acc_type | branch_id | balance  |
++------+-------------+--------+----------+-----------+----------+
+| 1009 | Rahul Verma |  50009 | Savings  |       104 | 20000.75 |
++------+-------------+--------+----------+-----------+----------+
+1 row in set (0.00 sec)
+
+mysql> -- Query 1
+mysql> SELECT * FROM cust WHERE cid IN (SELECT cid FROM cust WHERE balance = (SELECT MAX(balance) FROM cust));
++------+-------------+--------+----------+-----------+-----------+
+| cid  | cname       | acctno | acc_type | branch_id | balance   |
++------+-------------+--------+----------+-----------+-----------+
+| 1008 | Pooja Mehta |  50008 | Fixed    |       103 | 150000.00 |
++------+-------------+--------+----------+-----------+-----------+
+1 row in set (0.00 sec)
+
+mysql> --Query 2
+    -> ;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--Query 2' at line 1
+mysql> -- Query 1
+mysql> SELECT * FROM cust WHERE cid IN (SELECT cid FROM cust WHERE balance = (SELECT MAX(balance) FROM cust));
++------+-------------+--------+----------+-----------+-----------+
+| cid  | cname       | acctno | acc_type | branch_id | balance   |
++------+-------------+--------+----------+-----------+-----------+
+| 1008 | Pooja Mehta |  50008 | Fixed    |       103 | 150000.00 |
++------+-------------+--------+----------+-----------+-----------+
+1 row in set (0.00 sec)
+
+mysql> -- Query 2
+mysql> SELECT * FROM cust WHERE cid IN (SELECT cid FROM cust WHERE balance = (SELECT MIN(balance) FROM cust));
++------+-------------+--------+----------+-----------+----------+
+| cid  | cname       | acctno | acc_type | branch_id | balance  |
++------+-------------+--------+----------+-----------+----------+
+| 1009 | Rahul Verma |  50009 | Savings  |       104 | 20000.75 |
++------+-------------+--------+----------+-----------+----------+
+1 row in set (0.00 sec)
+
+mysql> -- Query 3;
+mysql> SELECT * FROM cust
+    -> WHERE acc_type = (SELECT acc_type FROM cust WHERE cid = 1001);
++------+--------------+--------+----------+-----------+----------+
+| cid  | cname        | acctno | acc_type | branch_id | balance  |
++------+--------------+--------+----------+-----------+----------+
+| 1001 | Arjun Patel  |  50001 | Savings  |       101 | 25000.50 |
+| 1003 | Rohit Kumar  |  50003 | Savings  |       103 | 45000.75 |
+| 1005 | Suresh Rao   |  50005 | Savings  |       104 | 30000.25 |
+| 1007 | Deepak Joshi |  50007 | Savings  |       102 | 35000.50 |
+| 1009 | Rahul Verma  |  50009 | Savings  |       104 | 20000.75 |
++------+--------------+--------+----------+-----------+----------+
+5 rows in set (0.00 sec)
+
+mysql> -- Query 4;
+mysql> SELECT branch_name FROM branch_info WHERE branch_id = (SELECT branch_id FROM cust WHERE acctno = 1002);
+Empty set (0.00 sec)
+
+mysql> SELECT branch_name FROM branch_info WHERE branch_id = (SELECT branch_id FROM cust WHERE acctno = 50001);
++-------------+
+| branch_name |
++-------------+
+| Main Branch |
++-------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT cname FROM cust WHERE (SELECT AVG(balance) FROM cust);
++--------------+
+| cname        |
++--------------+
+| Arjun Patel  |
+| Meera Shah   |
+| Rohit Kumar  |
+| Kavya Nair   |
+| Suresh Rao   |
+| Anita Desai  |
+| Deepak Joshi |
+| Pooja Mehta  |
+| Rahul Verma  |
+| Sita Agarwal |
++--------------+
+10 rows in set (0.00 sec)
+
+mysql> -- Query 6
+mysql> SELECT cname FROM cust WHERE branch_id = (SELECT branch_id FROM branch_info WHERE cname = 'Arjun Patel');
+ERROR 1242 (21000): Subquery returns more than 1 row
+ ysql> SELECT cname FROM cust WHERE branch_id = (SELECT branch_id FROM branch_info WHERE cname = 'Arjun Patel') LIMIT 1;
+ERROR 1242 (21000): Subquery returns more than 1 row
+mysql> SELECT * FROM cust WHERE branch_id = (SELECT branch_id FROM branch_info WHERE cname = 'Arjun Patel');
+ERROR 1242 (21000): Subquery returns more than 1 row
+mysql> -- Query 7;
+mysql>
+mysql>
+mysql> -- Query 7;
+mysql> SELECT * FROM cust WHERE acc_type = (SELECT acc_type FROM );
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')' at line 1
+mysql>
+mysql>
+mysql> -- Query 10
+mysql>

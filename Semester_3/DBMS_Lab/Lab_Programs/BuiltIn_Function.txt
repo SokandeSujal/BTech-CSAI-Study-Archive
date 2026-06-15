@@ -1,0 +1,222 @@
+mysql> CREATE TABLE test_data (id INT, value INT, salary DECIMAL(10,2));
+ERROR 1046 (3D000): No database selected
+mysql> INSERT INTO test_data VALUES (1, 10, 1000.00), (2, 20, 2000.00), (3, 5, 3000.00), (4, 15, 1500.00);
+ERROR 1046 (3D000): No database selected
+mysql>
+mysql> SELECT AVG(salary) FROM test_data;
+ERROR 1046 (3D000): No database selected
+mysql> SELECT MIN(value) FROM test_data;
+ERROR 1046 (3D000): No database selected
+mysql> SELECT MAX(value) FROM test_data;
+ERROR 1046 (3D000): No database selected
+mysql> SELECT COUNT(*) FROM test_data;
+ERROR 1046 (3D000): No database selected
+mysql> SELECT SUM(value) FROM test_data;
+ERROR 1046 (3D000): No database selected
+mysql>
+mysql> SELECT SQRT(25);
++----------+
+| SQRT(25) |
++----------+
+|        5 |
++----------+
+1 row in set (0.00 sec)
+
+mysql> SELECT ABS(-15);
++----------+
+| ABS(-15) |
++----------+
+|       15 |
++----------+
+1 row in set (0.00 sec)
+
+mysql> SELECT MOD(10, 3);
++------------+
+| MOD(10, 3) |
++------------+
+|          1 |
++------------+
+1 row in set (0.00 sec)
+
+mysql>
+mysql> SELECT ROUND(3.14159, 2);
++-------------------+
+| ROUND(3.14159, 2) |
++-------------------+
+|              3.14 |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT CEIL(3.2);
++-----------+
+| CEIL(3.2) |
++-----------+
+|         4 |
++-----------+
+1 row in set (0.00 sec)
+
+mysql> SELECT FLOOR(3.8);
++------------+
+| FLOOR(3.8) |
++------------+
+|          3 |
++------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT TRUNCATE(3.14159, 2);
++----------------------+
+| TRUNCATE(3.14159, 2) |
++----------------------+
+|                 3.14 |
++----------------------+
+1 row in set (0.00 sec)
+
+mysql>
+mysql> SELECT RAND();
++--------------------+
+| RAND()             |
++--------------------+
+| 0.9421136797797993 |
++--------------------+
+1 row in set (0.00 sec)
+
+mysql>
+mysql> SELECT CONCAT('Hello', ' World!');
++----------------------------+
+| CONCAT('Hello', ' World!') |
++----------------------------+
+| Hello World!               |
++----------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT LENGTH('MySQL');
++-----------------+
+| LENGTH('MySQL') |
++-----------------+
+|               5 |
++-----------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT SUBSTR('Database', 1, 4);
++--------------------------+
+| SUBSTR('Database', 1, 4) |
++--------------------------+
+| Data                     |
++--------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT REPLACE('Hello World', 'World', 'MySQL');
++------------------------------------------+
+| REPLACE('Hello World', 'World', 'MySQL') |
++------------------------------------------+
+| Hello MySQL                              |
++------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT LOWER('HELLO WORLD');
++----------------------+
+| LOWER('HELLO WORLD') |
++----------------------+
+| hello world          |
++----------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT TRIM('  spaced text  ');
++-------------------------+
+| TRIM('  spaced text  ') |
++-------------------------+
+| spaced text             |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql>
+mysql> SELECT NOW();
++---------------------+
+| NOW()               |
++---------------------+
+| 2025-09-04 11:30:32 |
++---------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT CURDATE();
++------------+
+| CURDATE()  |
++------------+
+| 2025-09-04 |
++------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT DAY('2025-09-04');
++-------------------+
+| DAY('2025-09-04') |
++-------------------+
+|                 4 |
++-------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT MONTH('2025-09-04');
++---------------------+
+| MONTH('2025-09-04') |
++---------------------+
+|                   9 |
++---------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT YEAR('2025-09-04');
++--------------------+
+| YEAR('2025-09-04') |
++--------------------+
+|               2025 |
++--------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT DATE_FORMAT('2025-09-04', '%Y-%m-%d');
++---------------------------------------+
+| DATE_FORMAT('2025-09-04', '%Y-%m-%d') |
++---------------------------------------+
+| 2025-09-04                            |
++---------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT DATE_ADD('2025-09-04', INTERVAL 10 DAY);
++-----------------------------------------+
+| DATE_ADD('2025-09-04', INTERVAL 10 DAY) |
++-----------------------------------------+
+| 2025-09-14                              |
++-----------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT DAYOFWEEK('2025-09-04');
++-------------------------+
+| DAYOFWEEK('2025-09-04') |
++-------------------------+
+|                       5 |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql>
+mysql> SELECT CAST('123' AS SIGNED);
++-----------------------+
+| CAST('123' AS SIGNED) |
++-----------------------+
+|                   123 |
++-----------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT CONVERT('123', SIGNED);
++------------------------+
+| CONVERT('123', SIGNED) |
++------------------------+
+|                    123 |
++------------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT CONVERT('-123', SIGNED);
++-------------------------+
+| CONVERT('-123', SIGNED) |
++-------------------------+
+|                    -123 |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql>
