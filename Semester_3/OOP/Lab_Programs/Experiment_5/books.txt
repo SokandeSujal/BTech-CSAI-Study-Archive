@@ -1,0 +1,5 @@
+101 The_Great_Gatsby Fitzgerald 450.5 5
+102 To_Kill_a_Mockingbird Harper_Lee 399.9 3
+103 Nineteen_Eighty_Four George_Orwell 345 3
+104 Pride_and_Prejudice Jane_Austen 500 0
+105 Moby_Dick Herman_Melville 299.5 2
